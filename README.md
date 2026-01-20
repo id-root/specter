@@ -11,6 +11,9 @@
   <a href="#">
     <img src="https://img.shields.io/badge/Capability-WAF%20Bypass-red" alt="Capability: WAF Bypass">
   </a>
+  <a href="https://github.com/id-root/spectre/actions/workflows/ci.yml">
+  <img src="https://github.com/id-root/spectre/actions/workflows/ci.yml/badge.svg" alt="Build Status"> 
+  </a>
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-black.svg" alt="License: MIT">
   </a>
@@ -123,6 +126,56 @@ Defined in `Cargo.toml`:
 * `headless_chrome`: Controls Chrome via DevTools Protocol.
 * `ratatui` & `crossterm`: Terminal UI.
 * `anyhow` & `log`: Error handling and logging.
+
+Yes, absolutely. Most security researchers and casual users will prefer downloading the binary rather than setting up a full Rust development environment.
+
+You should add a dedicated **"Quick Start (Binary)"** section to your `README.md`.
+
+Here is a ready-to-use Markdown snippet you can copy directly into your `README.md`. It covers the installation, the critical requirement of `profiles.toml`, and the external dependency on Chrome.
+
+## 🚀 Quick Start (Binary Release)
+
+No Rust installation required.
+
+### 1. Download
+Go to the [Releases](https://github.com/id-root/spectre/releases) page and download the latest archive for your OS:
+* **Linux**: `spectre-linux-x86_64.tar.gz`
+* **Windows**: `spectre-windows-x86_64.zip`
+
+### 2. Install Dependencies
+**Spectre requires Google Chrome or Chromium** to solve JavaScript challenges.
+* **Linux**: `sudo apt install chromium-browser`
+* **Windows**: Install [Google Chrome](https://www.google.com/chrome/).
+
+### 3. Run
+Extract the archive. **Important:** The `profiles.toml` file must be in the same folder as the executable.
+
+**Linux:**
+```bash
+tar -xvf spectre-linux-x86_64.tar.gz
+cd spectre-linux-x86_64
+chmod +x spectre
+./spectre
+```
+
+
+**Windows:**
+
+1. Right-click the zip -> **Extract All**.
+2. Open the extracted folder.
+3. `spectre.exe`  run it from PowerShell.
+
+### ⚙️ Configuration
+
+Edit `profiles.toml` to set your target:
+
+```toml
+[general]
+target_url = "http://target-website.com"
+concurrency = 2
+```
+
+
 
 ## 📝 Build from source & Run
 
