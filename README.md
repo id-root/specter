@@ -11,9 +11,6 @@
   <a href="#">
     <img src="https://img.shields.io/badge/Capability-WAF%20Bypass-red" alt="Capability: WAF Bypass">
   </a>
-  <a href="https://github.com/id-root/spectre/actions/workflows/ci.yml">
-  <img src="https://github.com/id-root/spectre/actions/workflows/ci.yml/badge.svg" alt="Build Status"> 
-  </a>
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-black.svg" alt="License: MIT">
   </a>
