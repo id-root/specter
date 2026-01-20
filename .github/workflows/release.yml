@@ -44,11 +44,11 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # 3. Build Binary
+      # 3. Build Binary (With Static Linking fix for Windows)
       - name: Build Release
-        # If your project is in a subdirectory 'specter', change this to: 
-        # working-directory: specter
-        # run: cargo build --release --target ${{ matrix.target }}
+        env:
+          # This specifically fixes the VCRRUNTIME140.dll error on Windows
+          RUSTFLAGS: ${{ matrix.os == 'windows-latest' && '-C target-feature=+crt-static' || '' }}
         run: cargo build --release --target ${{ matrix.target }}
 
       # 4. Package Linux (Tarball)
@@ -68,7 +68,6 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path release-pack
           Copy-Item target/${{ matrix.target }}/release/${{ matrix.binary_name }} -Destination release-pack/
-          # Ensure profiles.toml is copied (Critical for Windows users)
           Copy-Item profiles.toml -Destination release-pack/
           Compress-Archive -Path release-pack/* -DestinationPath ${{ matrix.archive_name }}
 
