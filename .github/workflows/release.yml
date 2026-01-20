@@ -1,0 +1,80 @@
+name: Release Binaries
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags like v0.2.0
+
+permissions:
+  contents: write # Required to create releases
+
+jobs:
+  release:
+    name: Build & Release (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux Configuration
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_name: spectre-linux-x86_64.tar.gz
+            binary_name: spectre
+            
+          # Windows Configuration
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_name: spectre-windows-x86_64.zip
+            binary_name: spectre.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Install System Dependencies (Linux Only)
+      - name: Install Linux Deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libssl-dev
+
+      # 2. Install Rust Toolchain
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # 3. Build Binary
+      - name: Build Release
+        # If your project is in a subdirectory 'specter', change this to: 
+        # working-directory: specter
+        # run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # 4. Package Linux (Tarball)
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p release-pack
+          cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release-pack/
+          cp profiles.toml release-pack/
+          cd release-pack
+          tar -czf ../${{ matrix.archive_name }} ${{ matrix.binary_name }} profiles.toml
+
+      # 5. Package Windows (Zip)
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-pack
+          Copy-Item target/${{ matrix.target }}/release/${{ matrix.binary_name }} -Destination release-pack/
+          # Ensure profiles.toml is copied (Critical for Windows users)
+          Copy-Item profiles.toml -Destination release-pack/
+          Compress-Archive -Path release-pack/* -DestinationPath ${{ matrix.archive_name }}
+
+      # 6. Upload Assets to Release
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ matrix.archive_name }}
