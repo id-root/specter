@@ -95,14 +95,12 @@ impl BrowserSolver {
     pub fn solve(url: &str, proxy: Option<&str>, logger: &SpectreLogger, worker_id: &str) -> Result<String> {
         logger.log(worker_id, "BROWSER_INIT", "Initializing Headless Chrome", None);
 
-        // Optimized flags for Windows/VirtualBox and WAF evasion
         let mut args = vec![
             "--no-sandbox", 
             "--disable-gpu", 
             "--disable-dev-shm-usage",
             "--window-size=1920,1080", 
             "--disable-blink-features=AutomationControlled",
-        
             "--disable-software-rasterizer",
         ];
 
@@ -143,29 +141,40 @@ impl BrowserSolver {
         logger.log(worker_id, "BROWSER_NAV", "Navigating to Target", Some(&format!("\"{}\"", url)));
         tab.navigate_to(url)?;
         
-        // DYNAMIC POLLING: Fixes the 3s race condition and Windows false negatives
         let start_time = Instant::now();
-        let timeout = Duration::from_secs(25); 
+        let timeout = Duration::from_secs(30); 
         let mut challenge_result = None;
 
         while start_time.elapsed() < timeout {
-            // 1. Primary Success Indicator: WAF Clearance Cookie
+            // 1. Primary Check: Known WAF Cookies
             if let Ok(cookies) = tab.get_cookies() {
-                if let Some(cookie) = cookies.iter().find(|c| c.name == "waf_clearance") {
+                let targets = ["waf_clearance", "cf_clearance", "_dd_s", "datadome", "bifrost"]; 
+                if let Some(cookie) = cookies.iter().find(|c| targets.contains(&c.name.as_str())) {
                     challenge_result = Some(format!("{}={}", cookie.name, cookie.value));
                     break;
                 }
             }
 
-            // 2. Secondary Success Indicator: DOM Content
+            // 2. Secondary Check: DOM Success (e.g. "Welcome")
+            // CRITICAL FIX: If we see success text, we must DUMP ALL COOKIES.
             if let Ok(content) = tab.get_content() {
                 if content.contains("Access Granted") || content.contains("Welcome") {
-                    challenge_result = Some("Success (Verified via DOM)".to_string());
-                    break;
+                     // The WAF let us through, so the cookies must be valid.
+                     // Since we don't know the exact name, we grab ALL of them.
+                     if let Ok(cookies) = tab.get_cookies() {
+                         let cookie_str = cookies.iter()
+                            .map(|c| format!("{}={}", c.name, c.value))
+                            .collect::<Vec<String>>()
+                            .join("; ");
+                         
+                         if !cookie_str.is_empty() {
+                             challenge_result = Some(cookie_str);
+                             break;
+                         }
+                     }
                 }
             }
             
-            // Wait to allow JS execution/Rendering
             std::thread::sleep(Duration::from_millis(500));
         }
 
@@ -178,6 +187,9 @@ impl BrowserSolver {
         Err(anyhow!("Browser failed to solve challenge within timeout"))
     }
 }
+
+// ... (The rest of the file: ClientFactory, ResponseAnalyzer, GridManager, CoreEngine remains exactly the same) ...
+// Ensure you keep the CoreEngine block at the end where the file writing happens.
 
 // --- Client Factory ---
 pub struct ClientFactory {
@@ -411,6 +423,13 @@ impl CoreEngine {
                                                 match solved {
                                                     Ok(Ok(cookie_str)) => {
                                                         info!("Challenge SOLVED! Cookie: {}", cookie_str);
+                                                        
+                                                        // --- FEATURE: SAVE COOKIE TO FILE ---
+                                                        // We overwrite the file to ensure the latest cookie is there
+                                                        if let Ok(mut file) = std::fs::File::create("last_cookie.txt") {
+                                                            let _ = file.write_all(cookie_str.as_bytes());
+                                                        }
+                                                        
                                                         stats.successful_requests.fetch_add(1, Ordering::Relaxed);
                                                         let mut gm = grid_manager.lock().unwrap();
                                                         gm.report_success(&proxy_url);
