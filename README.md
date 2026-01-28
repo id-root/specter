@@ -3,7 +3,7 @@
     <img src="https://img.shields.io/badge/Made%20with-Rust-black.svg" alt="Made with Rust">
   </a>
   <a href="#">
-    <img src="https://img.shields.io/badge/version-0.2.0-black.svg" alt="Version 0.2.0">
+    <img src="https://img.shields.io/badge/version-2.0.0-black.svg" alt="Version 2.0.0">
   </a>
   <a href="#">
     <img src="https://img.shields.io/badge/Engine-Hybrid%20Solver-blueviolet" alt="Engine: Hybrid">
